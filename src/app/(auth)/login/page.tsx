@@ -89,7 +89,7 @@ const SignIn = () => {
     <div className="flex justify-center items-center h-screen">
       <div className="min-w-[300px] border border-gray-300 shadow-lg p-6 rounded-md">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="username"
