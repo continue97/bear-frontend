@@ -1,202 +1,190 @@
 "use client";
 
-import Link from "next/link";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm } from "react-hook-form";
-import { z } from "zod";
-
-import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { FcGoogle } from "react-icons/fc";
+import { useState } from "react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-
-const profileFormSchema = z.object({
-  username: z
-    .string()
-    .min(2, {
-      message: "Username must be at least 2 characters.",
-    })
-    .max(30, {
-      message: "Username must not be longer than 30 characters.",
-    }),
-  email: z
-    .string({
-      required_error: "Please select an email to display.",
-    })
-    .email(),
-  bio: z.string().max(160).min(4),
-  urls: z
-    .array(
-      z.object({
-        value: z.string().url({ message: "Please enter a valid URL." }),
-      })
-    )
-    .optional(),
-});
-
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
-
-// This can come from your database or API.
-const defaultValues: Partial<ProfileFormValues> = {
-  bio: "I own a computer.",
-  urls: [
-    { value: "https://shadcn.com" },
-    { value: "http://twitter.com/shadcn" },
-  ],
-};
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { createClient } from "@/lib/supabase/client";
 
 const SignIn = () => {
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues,
-    mode: "onChange",
-  });
+  const supabase = createClient();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const { fields, append } = useFieldArray({
-    name: "urls",
-    control: form.control,
-  });
-
-  function onSubmit(data: ProfileFormValues) {
-    toast({
-      title: "You submitted the following values:",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
-  }
+    if (error) {
+      console.error(error);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) {
+      console.error(error);
+    }
+  };
 
   return (
-    <div className="flex justify-center items-center h-screen">
-      <div className="min-w-[300px] border border-gray-300 shadow-lg p-6 rounded-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="shadcn" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    This is your public display name. It can be your real name
-                    or a pseudonym. You can only change this once every 30 days.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a verified email to display" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="m@example.com">
-                        m@example.com
-                      </SelectItem>
-                      <SelectItem value="m@google.com">m@google.com</SelectItem>
-                      <SelectItem value="m@support.com">
-                        m@support.com
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    You can manage verified email addresses in your{" "}
-                    <Link href="/examples/forms">email settings</Link>.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bio</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Tell us a little bit about yourself"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    You can <span>@mention</span> other users and organizations
-                    to link to them.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div>
-              {fields.map((field, index) => (
-                <FormField
-                  control={form.control}
-                  key={field.id}
-                  name={`urls.${index}.value`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={cn(index !== 0 && "sr-only")}>
-                        URLs
-                      </FormLabel>
-                      <FormDescription className={cn(index !== 0 && "sr-only")}>
-                        Add links to your website, blog, or social media
-                        profiles.
-                      </FormDescription>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => append({ value: "" })}
-              >
-                Add URL
-              </Button>
+    <div className="flex h-screen bg-black">
+      <div className="w-1/2 relative hidden md:block">
+        <div className="absolute inset-0 bg-black/30 z-10" />
+        <svg
+          className="absolute inset-0 h-full w-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <defs>
+            <radialGradient
+              id="Gradient1"
+              cx="50%"
+              cy="50%"
+              fx="0.441602%"
+              fy="50%"
+              r=".5"
+            >
+              <animate
+                attributeName="fx"
+                dur="34s"
+                values="0%;3%;0%"
+                repeatCount="indefinite"
+              />
+              <stop offset="0%" stopColor="rgba(255, 0, 255, 0.1)" />
+              <stop offset="100%" stopColor="rgba(255, 0, 255, 0)" />
+            </radialGradient>
+            <radialGradient
+              id="Gradient2"
+              cx="50%"
+              cy="50%"
+              fx="2.68147%"
+              fy="50%"
+              r=".5"
+            >
+              <animate
+                attributeName="fx"
+                dur="23.5s"
+                values="0%;3%;0%"
+                repeatCount="indefinite"
+              />
+              <stop offset="0%" stopColor="rgba(255, 0, 255, 0.1)" />
+              <stop offset="100%" stopColor="rgba(255, 0, 255, 0)" />
+            </radialGradient>
+            <radialGradient
+              id="Gradient3"
+              cx="50%"
+              cy="50%"
+              fx="0.836536%"
+              fy="50%"
+              r=".5"
+            >
+              <animate
+                attributeName="fx"
+                dur="21.5s"
+                values="0%;3%;0%"
+                repeatCount="indefinite"
+              />
+              <stop offset="0%" stopColor="rgba(0, 255, 255, 0.1)" />
+              <stop offset="100%" stopColor="rgba(0, 255, 255, 0)" />
+            </radialGradient>
+            <pattern
+              id="pattern"
+              width="100"
+              height="100"
+              patternUnits="userSpaceOnUse"
+            >
+              <rect width="100" height="100" fill="url(#Gradient1)" />
+              <rect width="100" height="100" fill="url(#Gradient2)" />
+              <rect width="100" height="100" fill="url(#Gradient3)" />
+            </pattern>
+          </defs>
+          <rect width="100" height="100" fill="url(#pattern)" />
+        </svg>
+      </div>
+
+      <div className="w-full md:w-1/2 flex items-center justify-center p-8">
+        <Card className="w-full max-w-md border-zinc-800 bg-zinc-900/50 backdrop-blur">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-medium text-center text-white">
+              Welcome back
+            </CardTitle>
+            <CardDescription className="text-center text-zinc-400">
+              Sign in to your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              variant="outline"
+              className="w-full h-11 text-white bg-transparent border-zinc-700 hover:bg-zinc-800 hover:text-gray-200"
+              onClick={handleGoogleSignIn}
+            >
+              <FcGoogle className="mr-2 h-5 w-5" />
+              Sign in with Google
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-zinc-800" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-zinc-900 px-2 text-zinc-500">
+                  or continue with email
+                </span>
+              </div>
             </div>
-            <Button type="submit">Update profile</Button>
-          </form>
-        </Form>
+
+            <form onSubmit={handleEmailSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-zinc-400">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-zinc-400">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-11 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500"
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full h-11 bg-white text-black hover:bg-zinc-200"
+              >
+                Sign In
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
